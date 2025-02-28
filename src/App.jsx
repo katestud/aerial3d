@@ -2,6 +2,7 @@ import { FaPause, FaPlay } from 'react-icons/fa';
 import { useEffect, useState } from 'react';
 
 import { Canvas } from '@react-three/fiber';
+import { MathUtils } from 'three';
 import { OrbitControls } from '@react-three/drei';
 
 function Torus({position, rotation}) {
@@ -26,7 +27,14 @@ function App() {
         const rows = csv.trim().split('\n').slice(1);
         const parsedData = rows.map((row) => {
           const [, x, y, z, rx, ry, rz] = row.split(',').map(Number);
-          return { x, y, z, rx, ry, rz };
+          return {
+            x,
+            y,
+            z,
+            rx,
+            ry,
+            rz
+          };
         });
         setData(parsedData);
       });
@@ -52,10 +60,9 @@ function App() {
             <Torus
               position={[currentFrame.x / 1000, currentFrame.y / 1000,currentFrame.z / 1000]}
               rotation={[
-                (currentFrame.rx * Math.PI) / 180,
-                (currentFrame.ry * Math.PI) / 180,
-                (currentFrame.rz * Math.PI) / 180,
-
+                MathUtils.degToRad(currentFrame.rx),
+                MathUtils.degToRad(currentFrame.ry),
+                MathUtils.degToRad(currentFrame.rz)
               ]}
             />
             {/* <OrbitControls /> */}
