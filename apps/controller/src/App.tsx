@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 function App() {
   const [acceleration, setAcceleration] = useState([0, 0, 0]);
   const [orientation, setOrientation] = useState([0, 0, 0]);
+  const [permissionGranted, setPermissionGranted] = useState(false);
 
   useEffect(() => {
     const handler = (event: DeviceMotionEvent) => {
@@ -29,11 +30,45 @@ function App() {
     };
   }, []);
 
+  const requestPermission = async () => {
+    // @ts-expect-error - IOS
+    if (typeof DeviceMotionEvent.requestPermission === "function") {
+      try {
+        // @ts-expect-error - IOS
+        const permissionState = await DeviceMotionEvent.requestPermission();
+        const orientationPermission =
+          // @ts-expect-error - IOS
+          await DeviceOrientationEvent.requestPermission();
+
+        if (
+          permissionState === "granted" &&
+          orientationPermission === "granted"
+        ) {
+          setPermissionGranted(true);
+        }
+      } catch (err) {
+        console.error("Permission request failed:", err);
+      }
+    } else {
+      // Handle regular non-iOS devices
+      setPermissionGranted(true);
+    }
+  };
+
   return (
     <>
       <h1>Aerial 3d</h1>
-      <p>Acceleration: {acceleration}</p>
-      <p>Orientation: {orientation}</p>
+      {!permissionGranted && (
+        <button onClick={requestPermission}>Enable Motion Sensors</button>
+      )}
+      <p>
+        Acceleration: {acceleration[0].toFixed(3)}, {acceleration[1].toFixed(3)}
+        , {acceleration[2].toFixed(3)}
+      </p>
+      <p>
+        Orientation: {orientation[0].toFixed(3)}, {orientation[1].toFixed(3)},{" "}
+        {orientation[2].toFixed(3)}
+      </p>
     </>
   );
 }
