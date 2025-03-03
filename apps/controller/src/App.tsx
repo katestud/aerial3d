@@ -1,34 +1,66 @@
 import "./App.css";
 
-import { useEffect, useState } from "react";
+import Peer, { DataConnection } from "peerjs";
+import { useEffect, useRef, useState } from "react";
 
 function App() {
   const [acceleration, setAcceleration] = useState([0, 0, 0]);
   const [orientation, setOrientation] = useState([0, 0, 0]);
   const [permissionGranted, setPermissionGranted] = useState(false);
+  const peerId = useRef<string | null>(null);
+  const [conn, setConn] = useState<DataConnection | null>(null);
+
+  useEffect(() => {
+    const peer = new Peer();
+
+    peer.on("open", (id) => {
+      peerId.current = id;
+      const urlParams = new URLSearchParams(window.location.search);
+      const displayPeerId = urlParams.get("peerid");
+
+      if (!displayPeerId) return;
+
+      const conn = peer.connect(displayPeerId, { reliable: true });
+      setConn(conn);
+    });
+
+    return () => {
+      peer.destroy();
+    };
+  }, []);
 
   useEffect(() => {
     const handler = (event: DeviceMotionEvent) => {
       if (event.acceleration) {
         const accel = event.acceleration;
         setAcceleration([accel.x || 0, accel.y || 0, accel.z || 0]);
+        conn?.send({
+          acceleration: { x: accel.x || 0, y: accel.y || 0, z: accel.z || 0 },
+        });
       }
     };
     window.addEventListener("devicemotion", handler);
     return () => {
       window.removeEventListener("devicemotion", handler);
     };
-  }, []);
+  }, [conn]);
 
   useEffect(() => {
     const handler = (event: DeviceOrientationEvent) => {
       setOrientation([event.alpha || 0, event.beta || 0, event.gamma || 0]);
+      conn?.send({
+        orientation: {
+          alpha: event.alpha || 0,
+          beta: event.beta || 0,
+          gamma: event.gamma || 0,
+        },
+      });
     };
     window.addEventListener("deviceorientation", handler);
     return () => {
       window.removeEventListener("deviceorientation", handler);
     };
-  }, []);
+  }, [conn]);
 
   const requestPermission = async () => {
     // @ts-expect-error - IOS
