@@ -4,26 +4,33 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import Peer from "peerjs";
 import { QRCodeSVG } from "qrcode.react";
+import React from "react";
 import { fetch6DoFData } from "./utils/6DoFData";
 
 const CONTROLLER_URL = "https://10.100.11.246:5173/";
-
-function lerp(start, end, t) {
-  return start * (1 - t) + end * t;
-}
 
 const DisplayContext = createContext({
   acceleration: { current: { x: 0, y: 0, z: 0 } },
 });
 
+type Acceleration = {
+  x: number;
+  y: number;
+  z: number;
+};
+
+type Data = {
+  acceleration?: Acceleration;
+};
+
 function Torus({ position, rotation }) {
-  const torustRef = useRef();
+  const torusRef = useRef<Acceleration>({ x: 0, y: 0, z: 0 });
   const { acceleration: targetAccel } = useContext(DisplayContext);
   const velocity = useRef({ x: 0, y: 0, z: 0 });
   const currentPosition = useRef({ x: 0, y: 0, z: 0 });
 
   useFrame((_, delta) => {
-    if (!torustRef.current) return;
+    if (!torusRef.current) return;
 
     // Convert acceleration to velocity (v = v0 + at)
     velocity.current = {
@@ -48,15 +55,14 @@ function Torus({ position, rotation }) {
 
     console.log(targetAccel.current.x);
 
-    // Lerp the actual mesh position to the calculated position
-    const position = torustRef.current.position;
+    const position = torusRef.current;
     position.x = currentPosition.current.x;
     position.y = currentPosition.current.y;
     position.z = currentPosition.current.z;
   });
 
   return (
-    <mesh ref={torustRef} position={position} rotation={rotation}>
+    <mesh ref={torusRef} position={position} rotation={rotation}>
       <torusGeometry />
       <meshNormalMaterial />
     </mesh>
@@ -64,7 +70,7 @@ function Torus({ position, rotation }) {
 }
 
 function App() {
-  const [peerId, setPeerId] = useState(null);
+  const [peerId, setPeerId] = useState<string | null>(null);
   const targetAcceleration = useRef({ x: 0, y: 0, z: 0 });
 
   useEffect(() => {
@@ -77,8 +83,9 @@ function App() {
     peer.on("connection", async (conn) => {
       console.log("on connection");
       conn.on("data", (data) => {
-        if (data?.acceleration) {
-          targetAcceleration.current = data.acceleration;
+        const typedData = data as Data;
+        if (typedData?.acceleration) {
+          targetAcceleration.current = typedData.acceleration;
         }
       });
 
@@ -101,9 +108,9 @@ function App() {
       </DisplayContext.Provider>
 
       <QRCodeSVG
-        value={`${CONTROLLER_URL}?peerid=${encodeURIComponent(peerId)}`}
+        value={`${CONTROLLER_URL}?peerid=${encodeURIComponent(peerId || "")}`}
       />
-      <p>{`${CONTROLLER_URL}?peerid=${encodeURIComponent(peerId)}`}</p>
+      <p>{`${CONTROLLER_URL}?peerid=${encodeURIComponent(peerId || "")}`}</p>
     </div>
   );
 }
@@ -113,7 +120,7 @@ function Scene() {
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[2, 2, 2]} />
-      <Torus />
+      <Torus position={[0, 0, 0]} rotation={[0, 0, 0]} />
     </>
   );
 }
