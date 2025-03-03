@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { MathUtils } from 'three';
 import { OrbitControls } from '@react-three/drei';
+import { fetch6DoFData } from './utils/6DoFData';
 
 function Torus({position, rotation}) {
   return(
@@ -21,23 +22,7 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    fetch('/data.csv')
-      .then((response) => response.text())
-      .then((csv) => {
-        const rows = csv.trim().split('\n').slice(1);
-        const parsedData = rows.map((row) => {
-          const [, x, y, z, rx, ry, rz] = row.split(',').map(Number);
-          return {
-            x,
-            y,
-            z,
-            rx,
-            ry,
-            rz
-          };
-        });
-        setData(parsedData);
-      });
+    fetch6DoFData(setData);
   }, []);
 
   useEffect(() => {
@@ -60,9 +45,9 @@ function App() {
             <Torus
               position={[currentFrame.x / 1000, currentFrame.y / 1000,currentFrame.z / 1000]}
               rotation={[
-                MathUtils.degToRad(currentFrame.rx),
-                MathUtils.degToRad(currentFrame.ry),
-                MathUtils.degToRad(currentFrame.rz)
+                currentFrame.rx,
+                currentFrame.ry,
+                currentFrame.rz
               ]}
             />
             {/* <OrbitControls /> */}
