@@ -1,3 +1,5 @@
+import * as THREE from "three";
+
 import { Canvas, useFrame } from "@react-three/fiber";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
@@ -24,48 +26,62 @@ function Torus({
   position,
   rotation,
 }: {
-  position: [number, number, number];
+  position: { x: number; y: number; z: number };
   rotation: [number, number, number];
 }) {
-  const torusRef = useRef<Acceleration>({ x: 0, y: 0, z: 0 });
+  const torusRef = useRef<THREE.Mesh>(null);
   const { acceleration: targetAccel } = useContext(DisplayContext);
   const velocity = useRef({ x: 0, y: 0, z: 0 });
-  const currentPosition = useRef({ x: 0, y: 0, z: 0 });
+  const currentPosition = useRef({
+    x: position.x,
+    y: position.y,
+    z: position.z,
+  });
+
+  useEffect(() => {
+    currentPosition.current = { ...position };
+  }, [position]);
 
   useFrame((_, delta) => {
     if (!torusRef.current) return;
 
-    // Convert acceleration to velocity (v = v0 + at)
+    // Convert acceleration to velocity
     velocity.current = {
       x: velocity.current.x + targetAccel.current.x * delta,
       y: velocity.current.y + targetAccel.current.y * delta,
       z: velocity.current.z + targetAccel.current.z * delta,
     };
 
-    // // Apply some damping to velocity to prevent infinite movement
-    // velocity.current = {
-    //   x: velocity.current.x * 0.95,
-    //   y: velocity.current.y * 0.95,
-    //   z: velocity.current.z * 0.95,
-    // };
+    // Apply some damping to velocity
+    velocity.current = {
+      x: velocity.current.x * 0.95,
+      y: velocity.current.y * 0.95,
+      z: velocity.current.z * 0.95,
+    };
 
-    // Convert velocity to position (x = x0 + vt)
+    // Convert velocity to position
     currentPosition.current = {
       x: currentPosition.current.x + velocity.current.x * delta,
       y: currentPosition.current.y + velocity.current.y * delta,
       z: currentPosition.current.z + velocity.current.z * delta,
     };
 
-    console.log(targetAccel.current.x);
+    console.log("Current position:", currentPosition.current);
 
-    const position = torusRef.current;
-    position.x = currentPosition.current.x;
-    position.y = currentPosition.current.y;
-    position.z = currentPosition.current.z;
+    // Update mesh position
+    torusRef.current.position.set(
+      currentPosition.current.x,
+      currentPosition.current.y,
+      currentPosition.current.z
+    );
   });
 
   return (
-    <mesh ref={torusRef} position={position} rotation={rotation}>
+    <mesh
+      ref={torusRef}
+      position={[position.x, position.y, position.z]}
+      rotation={rotation}
+    >
       <torusGeometry />
       <meshNormalMaterial />
     </mesh>
@@ -84,7 +100,6 @@ function App() {
     });
 
     peer.on("connection", async (conn) => {
-      console.log("on connection");
       conn.on("data", (data) => {
         const typedData = data as Data;
         if (typedData?.acceleration) {
@@ -111,9 +126,13 @@ function App() {
       </DisplayContext.Provider>
 
       <QRCodeSVG
-        value={`${CONTROLLER_URL}?peerid=${encodeURIComponent(peerId || "")}`}
+        value={`${CONTROLLER_URL}?display_id=${encodeURIComponent(
+          peerId || ""
+        )}`}
       />
-      <p>{`${CONTROLLER_URL}?peerid=${encodeURIComponent(peerId || "")}`}</p>
+      <p>{`${CONTROLLER_URL}?display_id=${encodeURIComponent(
+        peerId || ""
+      )}`}</p>
     </div>
   );
 }
@@ -123,7 +142,7 @@ function Scene() {
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[2, 2, 2]} />
-      <Torus position={[0, 0, 0]} rotation={[0, 0, 0]} />
+      <Torus position={{ x: 0, y: 0, z: 0 }} rotation={[0, 0, 0]} />
     </>
   );
 }

@@ -1,29 +1,28 @@
 import "./App.css";
 
 import Peer, { DataConnection } from "peerjs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 function App() {
   const [acceleration, setAcceleration] = useState([0, 0, 0]);
   const [orientation, setOrientation] = useState([0, 0, 0]);
   const [permissionGranted, setPermissionGranted] = useState(false);
-  const peerId = useRef<string | null>(null);
   const [conn, setConn] = useState<DataConnection | null>(null);
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const displayPeerId = urlParams.get("display_id");
+
     const peer = new Peer();
 
-    peer.on("open", (id) => {
-      peerId.current = id;
-      const urlParams = new URLSearchParams(window.location.search);
-      const displayPeerId = urlParams.get("peerid");
-
+    peer.on("open", () => {
       if (!displayPeerId) return;
 
       const conn = peer.connect(displayPeerId, { reliable: true });
       setConn(conn);
     });
 
+    // Clean up peer connection the next time the component unmounts
     return () => {
       peer.destroy();
     };
