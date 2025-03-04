@@ -1,11 +1,8 @@
 import { Canvas, useFrame } from "@react-three/fiber";
-import { FaPause, FaPlay } from "react-icons/fa";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import Peer from "peerjs";
 import { QRCodeSVG } from "qrcode.react";
-import React from "react";
-import { fetch6DoFData } from "./utils/6DoFData";
 
 const CONTROLLER_URL = "https://10.100.11.246:5173/";
 
@@ -23,7 +20,13 @@ type Data = {
   acceleration?: Acceleration;
 };
 
-function Torus({ position, rotation }) {
+function Torus({
+  position,
+  rotation,
+}: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+}) {
   const torusRef = useRef<Acceleration>({ x: 0, y: 0, z: 0 });
   const { acceleration: targetAccel } = useContext(DisplayContext);
   const velocity = useRef({ x: 0, y: 0, z: 0 });
