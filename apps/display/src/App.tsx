@@ -62,14 +62,17 @@ type DeviceData = {
 function Torus({
   position,
   rotation,
+  useOrientation,
 }: {
   position: { x: number; y: number; z: number };
   rotation: { alpha: number; beta: number; gamma: number };
+  useOrientation: boolean;
 }) {
+  console.log(useOrientation);
   const torusRef = useRef<THREE.Mesh>(null);
   const {
     acceleration: targetAccel,
-    // orientation: targetOrientation,
+    orientation: targetOrientation,
     rotationRate: targetRotationRate,
   } = useContext(DisplayContext);
 
@@ -127,35 +130,31 @@ function Torus({
     // END: POSITIONING THE DEVICE ON THE SCREEN
 
     // BEGIN: ROTATING THE DEVICE ON THE SCREEN
-    // setRotation((prevRotation) => [
-    //   prevRotation[0] + (beta || 0) * (Math.PI / 180),
-    //   prevRotation[1] + (alpha || 0) * (Math.PI / 180),
-    //   prevRotation[2] + (gamma || 0) * (Math.PI / 180),
-    // ]);
-
-    // Update mesh rotation
-    // To set the device position based on the "absolute" value from the device,
-    // we can just update the value with the raw orientation value.
-    // currentRotation.current = {
-    //   alpha: THREE.MathUtils.degToRad(targetOrientation.current.alpha),
-    //   beta: THREE.MathUtils.degToRad(targetOrientation.current.beta),
-    //   gamma: THREE.MathUtils.degToRad(targetOrientation.current.gamma),
-    // };
-
-    // To set the device position based on the rotation rate value, which is
-    // more similar to data we would get from an embedded device, we can take
-    // a diff with the current rotation value and increment it, using the delta
-    // time to apply the rate.
-    currentRotation.current = {
-      alpha:
-        currentRotation.current.alpha +
-        targetRotationRate.current.alpha * delta,
-      beta:
-        currentRotation.current.beta + targetRotationRate.current.beta * delta,
-      gamma:
-        currentRotation.current.gamma +
-        targetRotationRate.current.gamma * delta,
-    };
+    if (useOrientation) {
+      // To set the device position based on the "absolute" value from the device,
+      // we can just update the value with the raw orientation value.
+      currentRotation.current = {
+        alpha: targetOrientation.current.alpha,
+        beta: targetOrientation.current.beta,
+        gamma: targetOrientation.current.gamma,
+      };
+    } else {
+      // To set the device position based on the rotation rate value, which is
+      // more similar to data we would get from an embedded device, we can take
+      // a diff with the current rotation value and increment it, using the delta
+      // time to apply the rate.
+      currentRotation.current = {
+        alpha:
+          currentRotation.current.alpha +
+          targetRotationRate.current.alpha * delta,
+        beta:
+          currentRotation.current.beta +
+          targetRotationRate.current.beta * delta,
+        gamma:
+          currentRotation.current.gamma +
+          targetRotationRate.current.gamma * delta,
+      };
+    }
 
     torusRef.current.rotation.set(
       THREE.MathUtils.degToRad(currentRotation.current.alpha),
@@ -184,6 +183,9 @@ function App() {
   const targetAcceleration = useRef({ x: 0, y: 0, z: 0 });
   const targetOrientation = useRef({ alpha: 0, beta: 0, gamma: 0 });
   const targetRotationRate = useRef({ alpha: 0, beta: 0, gamma: 0 });
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const useOrientation = urlParams.get("useorientation") === "true";
 
   useEffect(() => {
     getControllerUrl().then(setControllerUrl).catch(console.error);
@@ -242,7 +244,7 @@ function App() {
           }}
         >
           <Canvas style={{ flex: 1 }}>
-            <Scene />
+            <Scene useOrientation={useOrientation} />
           </Canvas>
         </DisplayContext.Provider>
       ) : peerId ? (
@@ -259,7 +261,7 @@ function App() {
   );
 }
 
-function Scene() {
+function Scene({ useOrientation }: { useOrientation: boolean }) {
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -267,6 +269,7 @@ function Scene() {
       <Torus
         position={{ x: 0, y: 0, z: 0 }}
         rotation={{ alpha: 0, beta: 0, gamma: 0 }}
+        useOrientation={useOrientation}
       />
     </>
   );
