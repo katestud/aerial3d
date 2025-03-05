@@ -34,7 +34,11 @@ function App() {
         const accel = event.acceleration;
         setAcceleration([accel.x || 0, accel.y || 0, accel.z || 0]);
         conn?.send({
-          acceleration: { x: accel.x || 0, y: accel.y || 0, z: accel.z || 0 },
+          acceleration: {
+            x: accel.x || 0,
+            y: accel.y || 0,
+            z: accel.z || 0,
+          },
         });
       }
     };
@@ -45,7 +49,11 @@ function App() {
   }, [conn]);
 
   useEffect(() => {
+    // The device orientation event fires when the device moves or changes orientation. It returns data about the difference between the device in its current position in relation to the Earth coordinate frame.
     const handler = (event: DeviceOrientationEvent) => {
+      // event also has an event.absolute property that indicates whether or
+      // not the orientation data is absolute or relative to the Earth
+      // coordinate frame.
       setOrientation([event.alpha || 0, event.beta || 0, event.gamma || 0]);
       conn?.send({
         orientation: {

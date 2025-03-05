@@ -39,8 +39,16 @@ type Acceleration = {
   z: number;
 };
 
-type Data = {
+type Orientation = {
+  absolute?: boolean;
+  alpha: number;
+  beta: number;
+  gamma: number;
+};
+
+type DeviceData = {
   acceleration?: Acceleration;
+  orientation?: Orientation;
 };
 
 function Torus({
@@ -129,9 +137,13 @@ function App() {
     peer.on("connection", async (conn) => {
       setConn(conn);
       conn.on("data", (data) => {
-        const typedData = data as Data;
+        const typedData = data as DeviceData;
         if (typedData?.acceleration) {
           targetAcceleration.current = typedData.acceleration;
+          console.log("Acceleration:", typedData.acceleration);
+        }
+        if (typedData?.orientation) {
+          console.log("Orientation:", typedData.orientation);
         }
       });
 
