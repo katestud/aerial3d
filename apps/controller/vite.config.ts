@@ -20,7 +20,7 @@ function setNetworkAddress() {
             .map((iface) => iface?.address);
 
           if (addresses.length > 0) {
-            const networkAddress = `http://${addresses[0]}:${address.port}`;
+            const networkAddress = `https://${addresses[0]}:${address.port}`;
             process.env.CONTROLLER_NETWORK_ADDRESS = networkAddress;
             console.log(`Network address set to: ${process.env.CONTROLLER_NETWORK_ADDRESS}`);
 
