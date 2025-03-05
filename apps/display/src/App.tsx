@@ -1,9 +1,11 @@
+import "./App.css";
+
 import * as THREE from "three";
 
 import { Canvas, useFrame } from "@react-three/fiber";
+import Peer, { DataConnection } from "peerjs";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
-import Peer from "peerjs";
 import { QRCodeSVG } from "qrcode.react";
 
 async function getControllerUrl() {
@@ -13,7 +15,7 @@ async function getControllerUrl() {
     return envUrl;
   }
 
-  const filePath = '/tmp/network-address.txt';
+  const filePath = "/tmp/network-address.txt";
   try {
     const response = await fetch(filePath);
     if (response.ok) {
@@ -109,6 +111,7 @@ function Torus({
 
 function App() {
   const [peerId, setPeerId] = useState<string | null>(null);
+  const [conn, setConn] = useState<DataConnection | null>(null);
   const [controllerUrl, setControllerUrl] = useState<string | null>(null);
   const targetAcceleration = useRef({ x: 0, y: 0, z: 0 });
 
@@ -124,6 +127,7 @@ function App() {
     });
 
     peer.on("connection", async (conn) => {
+      setConn(conn);
       conn.on("data", (data) => {
         const typedData = data as Data;
         if (typedData?.acceleration) {
@@ -145,22 +149,28 @@ function App() {
     return <div>Loading...</div>;
   }
 
-  return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
-      <DisplayContext.Provider value={{ acceleration: targetAcceleration }}>
-        <Canvas style={{ flex: 1 }}>
-          <Scene />
-        </Canvas>
-      </DisplayContext.Provider>
+  const qrCodeUrl = `${controllerUrl}?display_id=${encodeURIComponent(
+    peerId || ""
+  )}`;
 
-      <QRCodeSVG
-        value={`${controllerUrl}?display_id=${encodeURIComponent(
-          peerId || ""
-        )}`}
-      />
-      <p>{`${controllerUrl}?display_id=${encodeURIComponent(
-        peerId || ""
-      )}`}</p>
+  return (
+    <div className="container">
+      {conn ? (
+        <DisplayContext.Provider value={{ acceleration: targetAcceleration }}>
+          <Canvas style={{ flex: 1 }}>
+            <Scene />
+          </Canvas>
+        </DisplayContext.Provider>
+      ) : peerId ? (
+        <div className="qr-code-container">
+          <a href={qrCodeUrl} target="_blank" rel="noopener noreferrer">
+            <QRCodeSVG value={qrCodeUrl} />
+          </a>
+          <p>{qrCodeUrl}</p>
+        </div>
+      ) : (
+        <div className="qr-code-container">Loading...</div>
+      )}
     </div>
   );
 }
