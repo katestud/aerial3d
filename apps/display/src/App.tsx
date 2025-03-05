@@ -11,7 +11,6 @@ import { QRCodeSVG } from "qrcode.react";
 async function getControllerUrl() {
   const envUrl = import.meta.env.VITE_REACT_APP_CONTROLLER_URL;
   if (envUrl) {
-    console.log("Controller URL set in environment variable");
     return envUrl;
   }
 
@@ -207,11 +206,9 @@ function App() {
           targetAcceleration.current = typedData.acceleration;
         }
         if (typedData?.orientation) {
-          console.log("Orientation", typedData.orientation);
           targetOrientation.current = typedData.orientation;
         }
         if (typedData?.rotationRate) {
-          console.log("RotationRate", typedData.rotationRate);
           targetRotationRate.current = typedData.rotationRate;
         }
       });
@@ -253,7 +250,7 @@ function App() {
           <a href={qrCodeUrl} target="_blank" rel="noopener noreferrer">
             <QRCodeSVG value={qrCodeUrl} />
           </a>
-          <p>{qrCodeUrl}</p>
+          <p>Scan the code with your phone to visualize its position!</p>
         </div>
       ) : (
         <div className="qr-code-container">Loading...</div>
