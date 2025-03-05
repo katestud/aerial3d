@@ -63,10 +63,12 @@ function Torus({
   position,
   rotation,
   useOrientation,
+  useAcceleration,
 }: {
   position: { x: number; y: number; z: number };
   rotation: { alpha: number; beta: number; gamma: number };
   useOrientation: boolean;
+  useAcceleration: boolean;
 }) {
   console.log(useOrientation);
   const torusRef = useRef<THREE.Mesh>(null);
@@ -100,33 +102,35 @@ function Torus({
     if (!torusRef.current) return;
 
     // BEGIN: POSITIONING THE DEVICE ON THE SCREEN
-    // Convert acceleration to velocity
-    velocity.current = {
-      x: velocity.current.x + targetAccel.current.x * delta,
-      y: velocity.current.y + targetAccel.current.y * delta,
-      z: velocity.current.z + targetAccel.current.z * delta,
-    };
+    if (useAcceleration) {
+      // Convert acceleration to velocity
+      velocity.current = {
+        x: velocity.current.x + targetAccel.current.x * delta,
+        y: velocity.current.y + targetAccel.current.y * delta,
+        z: velocity.current.z + targetAccel.current.z * delta,
+      };
 
-    // Apply some damping to velocity
-    velocity.current = {
-      x: velocity.current.x * 0.95,
-      y: velocity.current.y * 0.95,
-      z: velocity.current.z * 0.95,
-    };
+      // Apply some damping to velocity
+      velocity.current = {
+        x: velocity.current.x * 0.95,
+        y: velocity.current.y * 0.95,
+        z: velocity.current.z * 0.95,
+      };
 
-    // Convert velocity to position
-    currentPosition.current = {
-      x: currentPosition.current.x + velocity.current.x * delta,
-      y: currentPosition.current.y + velocity.current.y * delta,
-      z: currentPosition.current.z + velocity.current.z * delta,
-    };
+      // Convert velocity to position
+      currentPosition.current = {
+        x: currentPosition.current.x + velocity.current.x * delta,
+        y: currentPosition.current.y + velocity.current.y * delta,
+        z: currentPosition.current.z + velocity.current.z * delta,
+      };
 
-    // // Update mesh position
-    // torusRef.current.position.set(
-    //   currentPosition.current.x,
-    //   currentPosition.current.y,
-    //   currentPosition.current.z
-    // );
+      // // Update mesh position
+      torusRef.current.position.set(
+        currentPosition.current.x,
+        currentPosition.current.y,
+        currentPosition.current.z
+      );
+    }
     // END: POSITIONING THE DEVICE ON THE SCREEN
 
     // BEGIN: ROTATING THE DEVICE ON THE SCREEN
@@ -186,6 +190,7 @@ function App() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const useOrientation = urlParams.get("useorientation") === "true";
+  const useAcceleration = urlParams.get("useacceleration") === "true";
 
   useEffect(() => {
     getControllerUrl().then(setControllerUrl).catch(console.error);
@@ -244,7 +249,10 @@ function App() {
           }}
         >
           <Canvas style={{ flex: 1 }}>
-            <Scene useOrientation={useOrientation} />
+            <Scene
+              useOrientation={useOrientation}
+              useAcceleration={useAcceleration}
+            />
           </Canvas>
         </DisplayContext.Provider>
       ) : peerId ? (
@@ -261,7 +269,13 @@ function App() {
   );
 }
 
-function Scene({ useOrientation }: { useOrientation: boolean }) {
+function Scene({
+  useOrientation,
+  useAcceleration,
+}: {
+  useOrientation: boolean;
+  useAcceleration: boolean;
+}) {
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -270,6 +284,7 @@ function Scene({ useOrientation }: { useOrientation: boolean }) {
         position={{ x: 0, y: 0, z: 0 }}
         rotation={{ alpha: 0, beta: 0, gamma: 0 }}
         useOrientation={useOrientation}
+        useAcceleration={useAcceleration}
       />
     </>
   );
