@@ -6,7 +6,26 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Peer from "peerjs";
 import { QRCodeSVG } from "qrcode.react";
 
-const CONTROLLER_URL = "https://10.100.11.246:5173/";
+async function getControllerUrl() {
+  const envUrl = import.meta.env.VITE_REACT_APP_CONTROLLER_URL;
+  if (envUrl) {
+    console.log("Controller URL set in environment variable");
+    return envUrl;
+  }
+
+  const filePath = '/tmp/network-address.txt';
+  try {
+    const response = await fetch(filePath);
+    if (response.ok) {
+      const networkAddress = await response.text();
+      return networkAddress.trim();
+    }
+  } catch (error) {
+    console.error("Failed to fetch network address:", error);
+  }
+
+  throw new Error("Controller URL not set in environment variable or file");
+}
 
 const DisplayContext = createContext({
   acceleration: { current: { x: 0, y: 0, z: 0 } },
@@ -90,7 +109,12 @@ function Torus({
 
 function App() {
   const [peerId, setPeerId] = useState<string | null>(null);
+  const [controllerUrl, setControllerUrl] = useState<string | null>(null);
   const targetAcceleration = useRef({ x: 0, y: 0, z: 0 });
+
+  useEffect(() => {
+    getControllerUrl().then(setControllerUrl).catch(console.error);
+  }, []);
 
   useEffect(() => {
     const peer = new Peer();
@@ -117,6 +141,10 @@ function App() {
     };
   }, []);
 
+  if (!controllerUrl) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <DisplayContext.Provider value={{ acceleration: targetAcceleration }}>
@@ -126,11 +154,11 @@ function App() {
       </DisplayContext.Provider>
 
       <QRCodeSVG
-        value={`${CONTROLLER_URL}?display_id=${encodeURIComponent(
+        value={`${controllerUrl}?display_id=${encodeURIComponent(
           peerId || ""
         )}`}
       />
-      <p>{`${CONTROLLER_URL}?display_id=${encodeURIComponent(
+      <p>{`${controllerUrl}?display_id=${encodeURIComponent(
         peerId || ""
       )}`}</p>
     </div>
