@@ -31,13 +31,20 @@ async function getControllerUrl() {
 
 const DisplayContext = createContext({
   acceleration: { current: { x: 0, y: 0, z: 0 } },
-  rotation: { current: { alpha: 0, beta: 0, gamma: 0 } },
+  orientation: { current: { alpha: 0, beta: 0, gamma: 0 } },
+  rotationRate: { current: { alpha: 0, beta: 0, gamma: 0 } },
 });
 
 type Acceleration = {
   x: number;
   y: number;
   z: number;
+};
+
+type RotationRate = {
+  alpha: number;
+  beta: number;
+  gamma: number;
 };
 
 type Orientation = {
@@ -50,6 +57,7 @@ type Orientation = {
 type DeviceData = {
   acceleration?: Acceleration;
   orientation?: Orientation;
+  rotationRate?: RotationRate;
 };
 
 function Torus({
@@ -60,8 +68,11 @@ function Torus({
   rotation: { alpha: number; beta: number; gamma: number };
 }) {
   const torusRef = useRef<THREE.Mesh>(null);
-  const { acceleration: targetAccel, rotation: targetRotation } =
-    useContext(DisplayContext);
+  const {
+    acceleration: targetAccel,
+    // orientation: targetOrientation,
+    rotationRate: targetRotationRate,
+  } = useContext(DisplayContext);
 
   const velocity = useRef({ x: 0, y: 0, z: 0 });
   const currentPosition = useRef({
@@ -124,16 +135,33 @@ function Torus({
     // ]);
 
     // Update mesh rotation
+    // To set the device position based on the "absolute" value from the device,
+    // we can just update the value with the raw orientation value.
+    // currentRotation.current = {
+    //   alpha: THREE.MathUtils.degToRad(targetOrientation.current.alpha),
+    //   beta: THREE.MathUtils.degToRad(targetOrientation.current.beta),
+    //   gamma: THREE.MathUtils.degToRad(targetOrientation.current.gamma),
+    // };
+
+    // To set the device position based on the rotation rate value, which is
+    // more similar to data we would get from an embedded device, we can take
+    // a diff with the current rotation value and increment it, using the delta
+    // time to apply the rate.
     currentRotation.current = {
-      alpha: THREE.MathUtils.degToRad(targetOrientation.current.alpha),
-      beta: THREE.MathUtils.degToRad(targetOrientation.current.beta),
-      gamma: THREE.MathUtils.degToRad(targetOrientation.current.gamma),
+      alpha:
+        currentRotation.current.alpha +
+        targetRotationRate.current.alpha * delta,
+      beta:
+        currentRotation.current.beta + targetRotationRate.current.beta * delta,
+      gamma:
+        currentRotation.current.gamma +
+        targetRotationRate.current.gamma * delta,
     };
 
     torusRef.current.rotation.set(
-      currentRotation.current.alpha,
-      currentRotation.current.beta,
-      currentRotation.current.gamma
+      THREE.MathUtils.degToRad(currentRotation.current.alpha),
+      THREE.MathUtils.degToRad(currentRotation.current.beta),
+      THREE.MathUtils.degToRad(currentRotation.current.gamma)
     );
     // END: ROTATING THE DEVICE ON THE SCREEN
   });
@@ -156,6 +184,7 @@ function App() {
   const [controllerUrl, setControllerUrl] = useState<string | null>(null);
   const targetAcceleration = useRef({ x: 0, y: 0, z: 0 });
   const targetOrientation = useRef({ alpha: 0, beta: 0, gamma: 0 });
+  const targetRotationRate = useRef({ alpha: 0, beta: 0, gamma: 0 });
 
   useEffect(() => {
     getControllerUrl().then(setControllerUrl).catch(console.error);
@@ -171,12 +200,19 @@ function App() {
     peer.on("connection", async (conn) => {
       setConn(conn);
       conn.on("data", (data) => {
+        // Receive information from the controller and set it to target
+        // values that we'll use the update the display.
         const typedData = data as DeviceData;
         if (typedData?.acceleration) {
           targetAcceleration.current = typedData.acceleration;
         }
         if (typedData?.orientation) {
+          console.log("Orientation", typedData.orientation);
           targetOrientation.current = typedData.orientation;
+        }
+        if (typedData?.rotationRate) {
+          console.log("RotationRate", typedData.rotationRate);
+          targetRotationRate.current = typedData.rotationRate;
         }
       });
 
@@ -204,7 +240,8 @@ function App() {
         <DisplayContext.Provider
           value={{
             acceleration: targetAcceleration,
-            rotation: targetOrientation,
+            orientation: targetOrientation,
+            rotationRate: targetRotationRate,
           }}
         >
           <Canvas style={{ flex: 1 }}>

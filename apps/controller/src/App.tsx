@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 function App() {
   const [acceleration, setAcceleration] = useState([0, 0, 0]);
+  const [rotationRate, setRotationRate] = useState([0, 0, 0]);
   const [orientation, setOrientation] = useState([0, 0, 0]);
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [conn, setConn] = useState<DataConnection | null>(null);
@@ -38,6 +39,21 @@ function App() {
             x: accel.x || 0,
             y: accel.y || 0,
             z: accel.z || 0,
+          },
+        });
+      }
+      if (event.rotationRate) {
+        const rotation = event.rotationRate;
+        setRotationRate([
+          rotation.alpha || 0,
+          rotation.beta || 0,
+          rotation.gamma || 0,
+        ]);
+        conn?.send({
+          rotationRate: {
+            alpha: rotation.alpha || 0,
+            beta: rotation.beta || 0,
+            gamma: rotation.gamma || 0,
           },
         });
       }
@@ -103,6 +119,10 @@ function App() {
       <p>
         Acceleration: {acceleration[0].toFixed(3)}, {acceleration[1].toFixed(3)}
         , {acceleration[2].toFixed(3)}
+      </p>
+      <p>
+        Rotation Rate: {rotationRate[0].toFixed(3)},{" "}
+        {rotationRate[1].toFixed(3)}, {rotationRate[2].toFixed(3)}
       </p>
       <p>
         Orientation: {orientation[0].toFixed(3)}, {orientation[1].toFixed(3)},{" "}
