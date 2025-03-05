@@ -70,6 +70,8 @@ function Torus({
     z: position.z,
   });
 
+  // Set the current rotation to the device's current value so we can
+  // compare it in later stages to apply a diff (if needed).
   const currentRotation = useRef({
     alpha: rotation.alpha,
     beta: rotation.beta,
@@ -84,6 +86,7 @@ function Torus({
   useFrame((_, delta) => {
     if (!torusRef.current) return;
 
+    // BEGIN: POSITIONING THE DEVICE ON THE SCREEN
     // Convert acceleration to velocity
     velocity.current = {
       x: velocity.current.x + targetAccel.current.x * delta,
@@ -111,19 +114,28 @@ function Torus({
     //   currentPosition.current.y,
     //   currentPosition.current.z
     // );
+    // END: POSITIONING THE DEVICE ON THE SCREEN
+
+    // BEGIN: ROTATING THE DEVICE ON THE SCREEN
+    // setRotation((prevRotation) => [
+    //   prevRotation[0] + (beta || 0) * (Math.PI / 180),
+    //   prevRotation[1] + (alpha || 0) * (Math.PI / 180),
+    //   prevRotation[2] + (gamma || 0) * (Math.PI / 180),
+    // ]);
 
     // Update mesh rotation
     currentRotation.current = {
-      alpha: targetRotation.current.alpha,
-      beta: targetRotation.current.beta,
-      gamma: targetRotation.current.gamma,
+      alpha: THREE.MathUtils.degToRad(targetOrientation.current.alpha),
+      beta: THREE.MathUtils.degToRad(targetOrientation.current.beta),
+      gamma: THREE.MathUtils.degToRad(targetOrientation.current.gamma),
     };
 
     torusRef.current.rotation.set(
-      THREE.MathUtils.degToRad(currentRotation.current.alpha),
-      THREE.MathUtils.degToRad(currentRotation.current.beta),
-      THREE.MathUtils.degToRad(currentRotation.current.gamma)
+      currentRotation.current.alpha,
+      currentRotation.current.beta,
+      currentRotation.current.gamma
     );
+    // END: ROTATING THE DEVICE ON THE SCREEN
   });
 
   return (
