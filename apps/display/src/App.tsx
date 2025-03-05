@@ -31,6 +31,7 @@ async function getControllerUrl() {
 
 const DisplayContext = createContext({
   acceleration: { current: { x: 0, y: 0, z: 0 } },
+  rotation: { current: { alpha: 0, beta: 0, gamma: 0 } },
 });
 
 type Acceleration = {
@@ -56,10 +57,12 @@ function Torus({
   rotation,
 }: {
   position: { x: number; y: number; z: number };
-  rotation: [number, number, number];
+  rotation: { alpha: number; beta: number; gamma: number };
 }) {
   const torusRef = useRef<THREE.Mesh>(null);
-  const { acceleration: targetAccel } = useContext(DisplayContext);
+  const { acceleration: targetAccel, rotation: targetRotation } =
+    useContext(DisplayContext);
+
   const velocity = useRef({ x: 0, y: 0, z: 0 });
   const currentPosition = useRef({
     x: position.x,
@@ -67,9 +70,16 @@ function Torus({
     z: position.z,
   });
 
+  const currentRotation = useRef({
+    alpha: rotation.alpha,
+    beta: rotation.beta,
+    gamma: rotation.gamma,
+  });
+
   useEffect(() => {
     currentPosition.current = { ...position };
-  }, [position]);
+    currentRotation.current = { ...rotation };
+  }, [position, rotation]);
 
   useFrame((_, delta) => {
     if (!torusRef.current) return;
@@ -95,13 +105,24 @@ function Torus({
       z: currentPosition.current.z + velocity.current.z * delta,
     };
 
-    console.log("Current position:", currentPosition.current);
+    // // Update mesh position
+    // torusRef.current.position.set(
+    //   currentPosition.current.x,
+    //   currentPosition.current.y,
+    //   currentPosition.current.z
+    // );
 
-    // Update mesh position
-    torusRef.current.position.set(
-      currentPosition.current.x,
-      currentPosition.current.y,
-      currentPosition.current.z
+    // Update mesh rotation
+    currentRotation.current = {
+      alpha: targetRotation.current.alpha,
+      beta: targetRotation.current.beta,
+      gamma: targetRotation.current.gamma,
+    };
+
+    torusRef.current.rotation.set(
+      THREE.MathUtils.degToRad(currentRotation.current.alpha),
+      THREE.MathUtils.degToRad(currentRotation.current.beta),
+      THREE.MathUtils.degToRad(currentRotation.current.gamma)
     );
   });
 
@@ -109,7 +130,7 @@ function Torus({
     <mesh
       ref={torusRef}
       position={[position.x, position.y, position.z]}
-      rotation={rotation}
+      rotation={[rotation.alpha, rotation.beta, rotation.gamma]}
     >
       <torusGeometry />
       <meshNormalMaterial />
@@ -122,6 +143,7 @@ function App() {
   const [conn, setConn] = useState<DataConnection | null>(null);
   const [controllerUrl, setControllerUrl] = useState<string | null>(null);
   const targetAcceleration = useRef({ x: 0, y: 0, z: 0 });
+  const targetOrientation = useRef({ alpha: 0, beta: 0, gamma: 0 });
 
   useEffect(() => {
     getControllerUrl().then(setControllerUrl).catch(console.error);
@@ -140,10 +162,9 @@ function App() {
         const typedData = data as DeviceData;
         if (typedData?.acceleration) {
           targetAcceleration.current = typedData.acceleration;
-          console.log("Acceleration:", typedData.acceleration);
         }
         if (typedData?.orientation) {
-          console.log("Orientation:", typedData.orientation);
+          targetOrientation.current = typedData.orientation;
         }
       });
 
@@ -168,7 +189,12 @@ function App() {
   return (
     <div className="container">
       {conn ? (
-        <DisplayContext.Provider value={{ acceleration: targetAcceleration }}>
+        <DisplayContext.Provider
+          value={{
+            acceleration: targetAcceleration,
+            rotation: targetOrientation,
+          }}
+        >
           <Canvas style={{ flex: 1 }}>
             <Scene />
           </Canvas>
@@ -192,7 +218,10 @@ function Scene() {
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[2, 2, 2]} />
-      <Torus position={{ x: 0, y: 0, z: 0 }} rotation={[0, 0, 0]} />
+      <Torus
+        position={{ x: 0, y: 0, z: 0 }}
+        rotation={{ alpha: 0, beta: 0, gamma: 0 }}
+      />
     </>
   );
 }
