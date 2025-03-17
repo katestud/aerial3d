@@ -151,6 +151,7 @@ function Scene({
           position={{ x: 0, y: 0, z: 0 }}
           rotation={{ alpha: 0, beta: 0, gamma: 0 }}
           data={fileData || []}
+          useAcceleration={useAcceleration}
         />
       )}
     </>
@@ -200,8 +201,8 @@ function FilePlayback({ useAcceleration }: { useAcceleration: boolean }) {
           </div>
           <Canvas style={{ width: "100%", height: "100%" }}>
             <Scene
-              useOrientation={true}
-              useAcceleration={true}
+              useOrientation={false}
+              useAcceleration={useAcceleration}
               mode="file"
               fileData={fileData}
             />

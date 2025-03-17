@@ -10,6 +10,7 @@ type RecordedTorusProps = {
   rotation: { alpha: number; beta: number; gamma: number };
   data: DeviceData[];
   playbackRate?: number;
+  useAcceleration: boolean;
 };
 
 export function RecordedTorus({
@@ -17,6 +18,7 @@ export function RecordedTorus({
   rotation,
   data,
   playbackRate = 1,
+  useAcceleration,
 }: RecordedTorusProps) {
   const torusRef = useRef<THREE.Mesh>(null);
   const elapsedTime = useRef(0);
@@ -52,38 +54,38 @@ export function RecordedTorus({
     const currentData = data[currentIndex.current];
     console.log("currentData", currentData);
 
-    // const targetAccel = currentData.acceleration;
+    const targetAccel = currentData.acceleration;
     const targetRotationRate = currentData.rotationRate;
 
-    // if (targetAccel) {
-    //   // Convert acceleration to velocity
-    //   velocity.current = {
-    //     x: velocity.current.x + targetAccel.x * delta,
-    //     y: velocity.current.y + targetAccel.y * delta,
-    //     z: velocity.current.z + targetAccel.z * delta,
-    //   };
+    if (useAcceleration && targetAccel) {
+      // Convert acceleration to velocity
+      velocity.current = {
+        x: velocity.current.x + targetAccel.x * delta,
+        y: velocity.current.y + targetAccel.y * delta,
+        z: velocity.current.z + targetAccel.z * delta,
+      };
 
-    //   // Apply some damping to velocity
-    //   velocity.current = {
-    //     x: velocity.current.x * 0.95,
-    //     y: velocity.current.y * 0.95,
-    //     z: velocity.current.z * 0.95,
-    //   };
+      // Apply some damping to velocity
+      velocity.current = {
+        x: velocity.current.x * 0.95,
+        y: velocity.current.y * 0.95,
+        z: velocity.current.z * 0.95,
+      };
 
-    //   // Convert velocity to position
-    //   currentPosition.current = {
-    //     x: currentPosition.current.x + velocity.current.x * delta,
-    //     y: currentPosition.current.y + velocity.current.y * delta,
-    //     z: currentPosition.current.z + velocity.current.z * delta,
-    //   };
+      // Convert velocity to position
+      currentPosition.current = {
+        x: currentPosition.current.x + velocity.current.x * delta,
+        y: currentPosition.current.y + velocity.current.y * delta,
+        z: currentPosition.current.z + velocity.current.z * delta,
+      };
 
-    //   // // Update mesh position
-    //   torusRef.current.position.set(
-    //     currentPosition.current.x,
-    //     currentPosition.current.y,
-    //     currentPosition.current.z
-    //   );
-    // }
+      // // Update mesh position
+      torusRef.current.position.set(
+        currentPosition.current.x,
+        currentPosition.current.y,
+        currentPosition.current.z
+      );
+    }
 
     if (targetRotationRate) {
       currentRotation.current = {
@@ -98,14 +100,6 @@ export function RecordedTorus({
       THREE.MathUtils.degToRad(currentRotation.current.beta),
       THREE.MathUtils.degToRad(currentRotation.current.gamma)
     );
-
-    // if (currentData.orientation) {
-    //   torusRef.current.rotation.set(
-    //     THREE.MathUtils.degToRad(currentData.orientation.alpha),
-    //     THREE.MathUtils.degToRad(currentData.orientation.beta),
-    //     THREE.MathUtils.degToRad(currentData.orientation.gamma)
-    //   );
-    // }
   });
 
   return (
