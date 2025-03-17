@@ -7,26 +7,7 @@ import Peer, { DataConnection } from "peerjs";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { QRCodeSVG } from "qrcode.react";
-
-async function getControllerUrl() {
-  const envUrl = import.meta.env.VITE_REACT_APP_CONTROLLER_URL;
-  if (envUrl) {
-    return envUrl;
-  }
-
-  const filePath = "/tmp/network-address.txt";
-  try {
-    const response = await fetch(filePath);
-    if (response.ok) {
-      const networkAddress = await response.text();
-      return networkAddress.trim();
-    }
-  } catch (error) {
-    console.error("Failed to fetch network address:", error);
-  }
-
-  throw new Error("Controller URL not set in environment variable or file");
-}
+import { getControllerUrl } from "./utils/controllerUrl";
 
 const DisplayContext = createContext({
   acceleration: { current: { x: 0, y: 0, z: 0 } },
@@ -70,7 +51,6 @@ function Torus({
   useOrientation: boolean;
   useAcceleration: boolean;
 }) {
-  console.log(useOrientation);
   const torusRef = useRef<THREE.Mesh>(null);
   const {
     acceleration: targetAccel,
@@ -100,6 +80,7 @@ function Torus({
 
   useFrame((_, delta) => {
     if (!torusRef.current) return;
+    console.log("useFrame", delta);
 
     // BEGIN: POSITIONING THE DEVICE ON THE SCREEN
     if (useAcceleration) {
