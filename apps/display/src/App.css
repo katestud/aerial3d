@@ -32,3 +32,52 @@
   text-align: center;
   width: 100%;
 }
+
+.mode-selector {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+}
+
+.mode-selector button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+}
+
+.mode-selector button.active {
+  background: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.file-list {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.file-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.file-list li {
+  margin: 10px 0;
+}
+
+.playback-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+}
