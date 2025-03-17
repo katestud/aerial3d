@@ -129,11 +129,15 @@ function Scene({
   useAcceleration,
   mode,
   fileData,
+  onTimeUpdate,
+  isPlaying,
 }: {
   useOrientation: boolean;
   useAcceleration: boolean;
   mode: "live" | "file";
   fileData?: DeviceData[];
+  onTimeUpdate?: (time: number) => void;
+  isPlaying?: boolean;
 }) {
   return (
     <>
@@ -152,6 +156,8 @@ function Scene({
           rotation={{ alpha: 0, beta: 0, gamma: 0 }}
           data={fileData || []}
           useAcceleration={useAcceleration}
+          onTimeUpdate={onTimeUpdate}
+          isPlaying={isPlaying || false}
         />
       )}
     </>
@@ -163,6 +169,7 @@ function FilePlayback({ useAcceleration }: { useAcceleration: boolean }) {
   const [fileData, setFileData] = useState<DeviceData[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const handleFileSelect = async (file: string) => {
     try {
@@ -199,12 +206,15 @@ function FilePlayback({ useAcceleration }: { useAcceleration: boolean }) {
               Back to File List
             </button>
           </div>
+          <div className="elapsed-time">{elapsedTime.toFixed(3)}s</div>
           <Canvas style={{ width: "100%", height: "100%" }}>
             <Scene
               useOrientation={false}
               useAcceleration={useAcceleration}
               mode="file"
               fileData={fileData}
+              onTimeUpdate={setElapsedTime}
+              isPlaying={isPlaying}
             />
           </Canvas>
         </>

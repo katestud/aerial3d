@@ -11,6 +11,8 @@ type RecordedTorusProps = {
   data: DeviceData[];
   playbackRate?: number;
   useAcceleration: boolean;
+  onTimeUpdate?: (time: number) => void;
+  isPlaying: boolean;
 };
 
 export function RecordedTorus({
@@ -19,96 +21,117 @@ export function RecordedTorus({
   data,
   playbackRate = 1,
   useAcceleration,
+  onTimeUpdate,
+  isPlaying,
 }: RecordedTorusProps) {
   const torusRef = useRef<THREE.Mesh>(null);
   const elapsedTime = useRef(0);
   const currentIndex = useRef(0);
-
-  const velocity = useRef({ x: 0, y: 0, z: 0 });
-  const currentPosition = useRef({
-    x: position.x,
-    y: position.y,
-    z: position.z,
-  });
-
-  const currentRotation = useRef({
-    alpha: rotation.alpha,
-    beta: rotation.beta,
-    gamma: rotation.gamma,
-  });
+  const quaternion = useRef(new THREE.Quaternion());
+  const gyroBias = useRef(new THREE.Vector3(0, 0, 0)); // Stores gyro drift correction
+  const velocity = useRef(new THREE.Vector3());
+  const currentPosition = useRef(
+    new THREE.Vector3(position.x, position.y, position.z)
+  );
 
   useEffect(() => {
-    currentPosition.current = { ...position };
-    currentRotation.current = { ...rotation };
-  }, [position, rotation]);
+    currentPosition.current.set(position.x, position.y, position.z);
+    quaternion.current.setFromEuler(
+      new THREE.Euler(
+        THREE.MathUtils.degToRad(rotation.alpha),
+        THREE.MathUtils.degToRad(rotation.beta),
+        THREE.MathUtils.degToRad(rotation.gamma)
+      )
+    );
+  }, []);
+
+  useEffect(() => {
+    currentPosition.current.set(position.x, position.y, position.z);
+  }, [position]);
 
   useFrame((_, delta) => {
     if (!torusRef.current || !data.length) return;
 
-    elapsedTime.current += delta * playbackRate;
+    if (isPlaying) {
+      elapsedTime.current += delta * playbackRate;
+      onTimeUpdate?.(elapsedTime.current);
 
-    // Assuming 208Hz data rate
-    const targetIndex = Math.floor(elapsedTime.current * 208);
-    currentIndex.current = targetIndex % data.length;
+      const targetIndex = Math.floor(elapsedTime.current * 208);
+      currentIndex.current = targetIndex % data.length;
 
-    const currentData = data[currentIndex.current];
-    console.log("currentData", currentData);
+      const currentData = data[currentIndex.current];
+      if (!currentData) return;
 
-    const targetAccel = currentData.acceleration;
-    const targetRotationRate = currentData.rotationRate;
+      const { acceleration, rotationRate } = currentData;
 
-    if (useAcceleration && targetAccel) {
-      // Convert acceleration to velocity
-      velocity.current = {
-        x: velocity.current.x + targetAccel.x * delta,
-        y: velocity.current.y + targetAccel.y * delta,
-        z: velocity.current.z + targetAccel.z * delta,
-      };
+      if (useAcceleration && acceleration) {
+        const ACCEL_SCALE = 16384;
+        const GRAVITY = 9.81;
 
-      // Apply some damping to velocity
-      velocity.current = {
-        x: velocity.current.x * 0.95,
-        y: velocity.current.y * 0.95,
-        z: velocity.current.z * 0.95,
-      };
+        const accelVector = new THREE.Vector3(
+          (acceleration.x / ACCEL_SCALE) * GRAVITY,
+          (acceleration.y / ACCEL_SCALE) * GRAVITY,
+          (acceleration.z / ACCEL_SCALE) * GRAVITY
+        );
 
-      // Convert velocity to position
-      currentPosition.current = {
-        x: currentPosition.current.x + velocity.current.x * delta,
-        y: currentPosition.current.y + velocity.current.y * delta,
-        z: currentPosition.current.z + velocity.current.z * delta,
-      };
+        velocity.current.addScaledVector(accelVector, delta);
+        velocity.current.multiplyScalar(0.95);
 
-      // // Update mesh position
-      torusRef.current.position.set(
-        currentPosition.current.x,
-        currentPosition.current.y,
-        currentPosition.current.z
-      );
+        currentPosition.current.addScaledVector(velocity.current, delta);
+        torusRef.current.position.copy(currentPosition.current);
+      }
+
+      if (rotationRate) {
+        const GYRO_SCALE = 16.4;
+        const SENSITIVITY_REDUCTION = 0.2;
+        const GYRO_BIAS_CORRECTION = 0.001;
+
+        const omega = new THREE.Vector3(
+          (rotationRate.alpha / GYRO_SCALE) * SENSITIVITY_REDUCTION,
+          (rotationRate.beta / GYRO_SCALE) * SENSITIVITY_REDUCTION,
+          (rotationRate.gamma / GYRO_SCALE) * SENSITIVITY_REDUCTION
+        ).multiplyScalar(THREE.MathUtils.degToRad(1)); // Convert to radians
+
+        // Apply gyro drift correction
+        const correctedOmega = omega.clone().sub(gyroBias.current);
+
+        const deltaQuat = new THREE.Quaternion(
+          correctedOmega.x * delta * 0.5,
+          correctedOmega.y * delta * 0.5,
+          correctedOmega.z * delta * 0.5,
+          1
+        ).normalize();
+
+        quaternion.current.multiply(deltaQuat).normalize();
+
+        // Slowly adjust the bias towards the measured gyro values
+        gyroBias.current.lerp(omega, GYRO_BIAS_CORRECTION);
+
+        if (useAcceleration && acceleration) {
+          const accelPitch = Math.atan2(
+            -acceleration.x,
+            Math.sqrt(acceleration.y ** 2 + acceleration.z ** 2)
+          );
+          const accelRoll = Math.atan2(acceleration.y, acceleration.z);
+
+          const accelQuat = new THREE.Quaternion().setFromEuler(
+            new THREE.Euler(accelPitch, accelRoll, 0)
+          );
+
+          quaternion.current.slerp(accelQuat, 0.05);
+        }
+
+        torusRef.current.quaternion.copy(quaternion.current);
+      }
     }
-
-    if (targetRotationRate) {
-      currentRotation.current = {
-        alpha: currentRotation.current.alpha + targetRotationRate.alpha * delta,
-        beta: currentRotation.current.beta + targetRotationRate.beta * delta,
-        gamma: currentRotation.current.gamma + targetRotationRate.gamma * delta,
-      };
-    }
-
-    torusRef.current.rotation.set(
-      THREE.MathUtils.degToRad(currentRotation.current.alpha),
-      THREE.MathUtils.degToRad(currentRotation.current.beta),
-      THREE.MathUtils.degToRad(currentRotation.current.gamma)
-    );
   });
 
   return (
     <mesh
       ref={torusRef}
-      position={[position.x, position.y, position.z]}
-      rotation={[rotation.alpha, rotation.beta, rotation.gamma]}
+      position={new THREE.Vector3(position.x, position.y, position.z)}
     >
-      <torusGeometry />
+      <boxGeometry args={[2, 3, 2]} />
       <meshNormalMaterial />
     </mesh>
   );
