@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import recordings from "virtual:recordings-list";
+
 export function RecordingFileList({
   onFileSelect,
 }: {
@@ -8,17 +10,9 @@ export function RecordingFileList({
   const [files, setFiles] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // ...in your component
   useEffect(() => {
-    fetch("/api/recordings")
-      .then((response) => response.json())
-      .then((data) => {
-        const csvFiles = data.filter((file: string) => file.endsWith(".csv"));
-        setFiles(csvFiles);
-      })
-      .catch((err) => {
-        console.error("Failed to load recordings:", err);
-        setError("Failed to load recordings");
-      });
+    setFiles(recordings);
   }, []);
 
   if (error) {
@@ -35,7 +29,7 @@ export function RecordingFileList({
           {files.map((file) => (
             <li key={file}>
               <button onClick={() => onFileSelect(`/recordings/${file}`)}>
-                {file.replace(/\.[^/.]+$/, "")}
+                {file.replace(/\.csv$/, "")}
               </button>
             </li>
           ))}

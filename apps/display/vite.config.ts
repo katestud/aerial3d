@@ -1,32 +1,28 @@
-import { ViteDevServer, defineConfig } from "vite";
-
-import fs from "fs";
-import path from "path";
+import { defineConfig } from "vite";
+import { join } from "path";
 import react from "@vitejs/plugin-react";
-
-function recordingsMiddleware() {
-  return {
-    name: "recordings-middleware",
-    configureServer(server: ViteDevServer) {
-      server.middlewares.use("/api/recordings", (req, res) => {
-        const recordingsDir = path.join(__dirname, "public/recordings");
-        try {
-          const files = fs
-            .readdirSync(recordingsDir)
-            .filter((file: string) => file.endsWith(".csv"));
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify(files));
-        } catch (error) {
-          console.error("Error reading recordings directory:", error);
-          res.statusCode = 500;
-          res.end(JSON.stringify({ error: "Failed to load recordings" }));
-        }
-      });
-    },
-  };
-}
+import { readdirSync } from "fs";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), recordingsMiddleware()],
+  plugins: [
+    {
+      name: "recordings-list",
+      resolveId(id) {
+        if (id === "virtual:recordings-list") {
+          return "\0virtual:recordings-list";
+        }
+      },
+      load(id) {
+        if (id === "\0virtual:recordings-list") {
+          const recordingsDir = join(__dirname, "public/recordings");
+          const files = readdirSync(recordingsDir).filter((file) =>
+            file.endsWith(".csv")
+          );
+          return `export default ${JSON.stringify(files)}`;
+        }
+      },
+    },
+    react(),
+  ],
 });
