@@ -1,15 +1,19 @@
+import { dirname } from "path";
+import { fileURLToPath } from "url";
 import { join } from "path";
-import { readdirSync } from "fs";
+import { readdir } from "fs/promises";
 
-export default function handler(req, res) {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export default async function handler(req, res) {
   try {
     const recordingsDir = join(process.cwd(), "public/recordings");
-    const files = readdirSync(recordingsDir).filter((file) =>
-      file.endsWith(".csv")
-    );
-    res.json(files);
+    const files = await readdir(recordingsDir);
+    const csvFiles = files.filter((file) => file.endsWith(".csv"));
+    return res.json(csvFiles);
   } catch (error) {
     console.error("Error reading recordings directory:", error);
-    res.status(500).json({ error: "Failed to load recordings" });
+    return res.status(500).json({ error: "Failed to load recordings" });
   }
 }
