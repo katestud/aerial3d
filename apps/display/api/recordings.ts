@@ -1,19 +1,31 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
 import { join } from "path";
 import { readdir } from "fs/promises";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+export const config = {
+  runtime: "edge",
+};
 
-export default async function handler(req, res) {
+export default async function handler(req: Request) {
   try {
     const recordingsDir = join(process.cwd(), "public/recordings");
     const files = await readdir(recordingsDir);
     const csvFiles = files.filter((file) => file.endsWith(".csv"));
-    return res.json(csvFiles);
+
+    return new Response(JSON.stringify(csvFiles), {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   } catch (error) {
     console.error("Error reading recordings directory:", error);
-    return res.status(500).json({ error: "Failed to load recordings" });
+    return new Response(
+      JSON.stringify({ error: "Failed to load recordings" }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
 }
