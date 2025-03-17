@@ -1,11 +1,10 @@
 import { Acceleration, Orientation, RotationRate } from "../types/device";
-
-import { createContext } from "react";
+import { MutableRefObject, createContext } from "react";
 
 type DisplayContextType = {
-  acceleration: { current: Acceleration };
-  orientation: { current: Orientation };
-  rotationRate: { current: RotationRate };
+  acceleration: MutableRefObject<Acceleration>;
+  orientation: MutableRefObject<Orientation>;
+  rotationRate: MutableRefObject<RotationRate>;
 };
 
 export const DisplayContext = createContext<DisplayContextType>({

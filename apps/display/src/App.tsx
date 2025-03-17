@@ -1,21 +1,17 @@
 import "./App.css";
 
 import Peer, { DataConnection } from "peerjs";
-import { createContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Canvas } from "@react-three/fiber";
 import { DeviceData } from "./types/device";
+import { DisplayContext } from "./context/DisplayContext";
 import { LiveTorus } from "./components/LiveTorus";
 import { QRCodeSVG } from "qrcode.react";
+import { RecordedTorus } from "./components/RecordedTorus";
 import { RecordingFileList } from "./components/RecordingFileList";
 import { getControllerUrl } from "./utils/controllerUrl";
 import { parseCSVToDeviceData } from "./utils/parseCSVData";
-
-const DisplayContext = createContext({
-  acceleration: { current: { x: 0, y: 0, z: 0 } },
-  orientation: { current: { alpha: 0, beta: 0, gamma: 0 } },
-  rotationRate: { current: { alpha: 0, beta: 0, gamma: 0 } },
-});
 
 // Add new type for display modes
 type DisplayMode = "qr-scan" | "file-playback";
@@ -47,8 +43,6 @@ function App() {
     peer.on("connection", async (conn) => {
       setConn(conn);
       conn.on("data", (data) => {
-        // Receive information from the controller and set it to target
-        // values that we'll use the update the display.
         const typedData = data as DeviceData;
         if (typedData?.acceleration) {
           targetAcceleration.current = typedData.acceleration;
