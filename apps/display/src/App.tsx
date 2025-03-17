@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { DeviceData } from "./types/device";
 import { QRCodeSVG } from "qrcode.react";
+import { RecordingFileList } from "./components/recording_file_list";
 import { getControllerUrl } from "./utils/controllerUrl";
 import { parseCSVToDeviceData } from "./utils/parseCSVData";
 
@@ -60,7 +61,6 @@ function Torus({
 
   useFrame((_, delta) => {
     if (!torusRef.current) return;
-    console.log("useFrame", delta);
 
     // BEGIN: POSITIONING THE DEVICE ON THE SCREEN
     if (useAcceleration) {
@@ -296,7 +296,7 @@ function FilePlayback() {
   return (
     <div className="file-playback">
       {!selectedFile ? (
-        <FileList onFileSelect={handleFileSelect} />
+        <RecordingFileList onFileSelect={handleFileSelect} />
       ) : (
         <DisplayContext.Provider
           // TODO: This currently just sets the position to 0,0,0, but it should
@@ -319,47 +319,6 @@ function FilePlayback() {
             <Scene useOrientation={true} useAcceleration={true} />
           </Canvas>
         </DisplayContext.Provider>
-      )}
-    </div>
-  );
-}
-
-function FileList({ onFileSelect }: { onFileSelect: (file: string) => void }) {
-  const [files, setFiles] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetch("/api/recordings")
-      .then((response) => response.json())
-      .then((data) => {
-        const csvFiles = data.filter((file: string) => file.endsWith(".csv"));
-        setFiles(csvFiles);
-      })
-      .catch((err) => {
-        console.error("Failed to load recordings:", err);
-        setError("Failed to load recordings");
-      });
-  }, []);
-
-  if (error) {
-    return <div className="file-list-error">{error}</div>;
-  }
-
-  return (
-    <div className="file-list">
-      <h2>Select a Recording</h2>
-      {files.length === 0 ? (
-        <p>Loading recordings...</p>
-      ) : (
-        <ul>
-          {files.map((file) => (
-            <li key={file}>
-              <button onClick={() => onFileSelect(`/recordings/${file}`)}>
-                {file.replace(/\.[^/.]+$/, "")}
-              </button>
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   );
