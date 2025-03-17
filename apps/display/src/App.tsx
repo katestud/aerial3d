@@ -13,7 +13,6 @@ import { RecordingFileList } from "./components/RecordingFileList";
 import { getControllerUrl } from "./utils/controllerUrl";
 import { parseCSVToDeviceData } from "./utils/parseCSVData";
 
-// Add new type for display modes
 type DisplayMode = "qr-scan" | "file-playback";
 
 function App() {
@@ -101,6 +100,7 @@ function App() {
             >
               <Canvas style={{ flex: 1 }}>
                 <Scene
+                  mode="live"
                   useOrientation={useOrientation}
                   useAcceleration={useAcceleration}
                 />
@@ -118,7 +118,7 @@ function App() {
           )}
         </>
       ) : (
-        <FilePlayback />
+        <FilePlayback useAcceleration={useAcceleration} />
       )}
     </div>
   );
@@ -127,25 +127,37 @@ function App() {
 function Scene({
   useOrientation,
   useAcceleration,
+  mode,
+  fileData,
 }: {
   useOrientation: boolean;
   useAcceleration: boolean;
+  mode: "live" | "file";
+  fileData?: DeviceData[];
 }) {
   return (
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[2, 2, 2]} />
-      <LiveTorus
-        position={{ x: 0, y: 0, z: 0 }}
-        rotation={{ alpha: 0, beta: 0, gamma: 0 }}
-        useOrientation={useOrientation}
-        useAcceleration={useAcceleration}
-      />
+      {mode === "live" ? (
+        <LiveTorus
+          position={{ x: 0, y: 0, z: 0 }}
+          rotation={{ alpha: 0, beta: 0, gamma: 0 }}
+          useOrientation={useOrientation}
+          useAcceleration={useAcceleration}
+        />
+      ) : (
+        <RecordedTorus
+          position={{ x: 0, y: 0, z: 0 }}
+          rotation={{ alpha: 0, beta: 0, gamma: 0 }}
+          data={fileData || []}
+        />
+      )}
     </>
   );
 }
 
-function FilePlayback() {
+function FilePlayback({ useAcceleration }: { useAcceleration: boolean }) {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileData, setFileData] = useState<DeviceData[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -167,20 +179,18 @@ function FilePlayback() {
   };
 
   return (
-    <div className="file-playback">
+    <div
+      className="file-playback"
+      style={{ flex: 1, display: "flex", flexDirection: "column" }}
+    >
       {!selectedFile ? (
         <RecordingFileList onFileSelect={handleFileSelect} />
       ) : (
-        <DisplayContext.Provider
-          // TODO: This currently just sets the position to 0,0,0, but it should
-          // read from the file.
-          value={{
-            acceleration: { current: { x: 0, y: 0, z: 0 } },
-            orientation: { current: { alpha: 0, beta: 0, gamma: 0 } },
-            rotationRate: { current: { alpha: 0, beta: 0, gamma: 0 } },
-          }}
-        >
-          <div className="playback-controls">
+        <>
+          <div
+            className="playback-controls"
+            style={{ position: "absolute", zIndex: 1 }}
+          >
             <button onClick={() => setIsPlaying(!isPlaying)}>
               {isPlaying ? "Pause" : "Play"}
             </button>
@@ -188,10 +198,15 @@ function FilePlayback() {
               Back to File List
             </button>
           </div>
-          <Canvas style={{ flex: 1 }}>
-            <Scene useOrientation={true} useAcceleration={true} />
+          <Canvas style={{ width: "100%", height: "100%" }}>
+            <Scene
+              useOrientation={true}
+              useAcceleration={true}
+              mode="file"
+              fileData={fileData}
+            />
           </Canvas>
-        </DisplayContext.Provider>
+        </>
       )}
     </div>
   );
