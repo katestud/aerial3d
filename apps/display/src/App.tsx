@@ -10,15 +10,16 @@ import { LiveTorus } from "./components/LiveTorus";
 import { QRCodeSVG } from "qrcode.react";
 import { RecordedTorus } from "./components/RecordedTorus";
 import { RecordingFileList } from "./components/RecordingFileList";
+import { RobotTorus } from "./components/RobotTorus";
 import { getControllerUrl } from "./utils/controllerUrl";
 import { parseCSVToDeviceData } from "./utils/parseCSVData";
 
-type DisplayMode = "qr-scan" | "file-playback";
+type DisplayMode = "qr-scan" | "file-playback" | "robot-arm";
 
 function App() {
   const [peerId, setPeerId] = useState<string | null>(null);
   const [conn, setConn] = useState<DataConnection | null>(null);
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("qr-scan");
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("robot-arm");
   const [controllerUrl, setControllerUrl] = useState<string | null>(null);
   const targetAcceleration = useRef({ x: 0, y: 0, z: 0 });
   const targetOrientation = useRef({ alpha: 0, beta: 0, gamma: 0 });
@@ -58,9 +59,36 @@ function App() {
         conn.send({ init: true });
       });
     });
+  }, []);
+
+  const [robotParams, setRobotParams] = useState<Array<number>>([
+    0, 0, 0, 0, 0, 0,
+  ]);
+  const socketRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    socketRef.current = new WebSocket("ws://10.100.11.67:9001");
+
+    socketRef.current.onopen = () => {
+      console.log("WebSocket connected");
+      socketRef.current?.send(JSON.stringify({ type: "hello" }));
+    };
+
+    socketRef.current.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setRobotParams(data);
+    };
+
+    socketRef.current.onclose = () => {
+      console.log("WebSocket disconnected");
+    };
+
+    socketRef.current.onerror = (error) => {
+      console.error("WebSocket error", error);
+    };
 
     return () => {
-      peer.destroy();
+      socketRef.current?.close();
     };
   }, []);
 
@@ -87,8 +115,14 @@ function App() {
         >
           Recorded Data
         </button>
+        <button
+          onClick={() => setDisplayMode("robot-arm")}
+          className={displayMode === "robot-arm" ? "active" : ""}
+        >
+          Robot Arm
+        </button>
       </nav>
-      {displayMode === "qr-scan" ? (
+      {displayMode === "qr-scan" && (
         <>
           {conn ? (
             <DisplayContext.Provider
@@ -100,7 +134,7 @@ function App() {
             >
               <Canvas style={{ flex: 1 }}>
                 <Scene
-                  mode="live"
+                  mode="live-phone"
                   useOrientation={useOrientation}
                   useAcceleration={useAcceleration}
                 />
@@ -117,8 +151,12 @@ function App() {
             <div className="qr-code-container">Loading...</div>
           )}
         </>
-      ) : (
+      )}
+      {displayMode === "file-playback" && (
         <FilePlayback useAcceleration={useAcceleration} />
+      )}
+      {displayMode === "robot-arm" && (
+        <RobotControlled armPosition={robotParams} />
       )}
     </div>
   );
@@ -131,26 +169,29 @@ function Scene({
   fileData,
   onTimeUpdate,
   isPlaying,
+  armPosition,
 }: {
   useOrientation: boolean;
   useAcceleration: boolean;
-  mode: "live" | "file";
+  mode: "live-phone" | "file" | "robot-arm";
   fileData?: DeviceData[];
   onTimeUpdate?: (time: number) => void;
   isPlaying?: boolean;
+  armPosition?: Array<number>;
 }) {
   return (
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[2, 2, 2]} />
-      {mode === "live" ? (
+      {mode === "live-phone" && (
         <LiveTorus
           position={{ x: 0, y: 0, z: 0 }}
           rotation={{ alpha: 0, beta: 0, gamma: 0 }}
           useOrientation={useOrientation}
           useAcceleration={useAcceleration}
         />
-      ) : (
+      )}{" "}
+      {mode === "file" && (
         <RecordedTorus
           position={{ x: 0, y: 0, z: 0 }}
           rotation={{ alpha: 0, beta: 0, gamma: 0 }}
@@ -160,6 +201,15 @@ function Scene({
           isPlaying={isPlaying || false}
         />
       )}
+      {mode === "robot-arm" && armPosition && (
+        <RobotTorus
+          position={{ x: 0, y: 0, z: -1 }}
+          rotation={{ alpha: 0, beta: 0, gamma: 0 }}
+          useOrientation={useOrientation}
+          useAcceleration={useAcceleration}
+          armPosition={armPosition}
+        />
+      )}{" "}
     </>
   );
 }
@@ -219,6 +269,23 @@ function FilePlayback({ useAcceleration }: { useAcceleration: boolean }) {
           </Canvas>
         </>
       )}
+    </div>
+  );
+}
+
+function RobotControlled({ armPosition }: { armPosition: Array<number> }) {
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <>
+        <Canvas style={{ width: "100%", height: "100%" }}>
+          <Scene
+            mode="robot-arm"
+            useOrientation={false}
+            useAcceleration={false}
+            armPosition={armPosition}
+          />
+        </Canvas>
+      </>
     </div>
   );
 }
