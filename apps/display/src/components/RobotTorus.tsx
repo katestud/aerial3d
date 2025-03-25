@@ -1,21 +1,15 @@
 import * as THREE from "three";
 
-import { useContext, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
-import { DisplayContext } from "../context/DisplayContext";
 import { useFrame } from "@react-three/fiber";
 
 type RobotTorusProps = {
-  position: { x: number; y: number; z: number };
-  rotation: { alpha: number; beta: number; gamma: number };
-  useOrientation: boolean;
-  useAcceleration: boolean;
   armPosition: Array<number>;
 };
 
 export function RobotTorus({ armPosition }: RobotTorusProps) {
   const torusRef = useRef<THREE.Mesh>(null);
-  // console.log(position);
   console.log("armPosition", armPosition);
 
   const motor0 = armPosition[0] / 90;
@@ -24,10 +18,12 @@ export function RobotTorus({ armPosition }: RobotTorusProps) {
 
   const motor3 = armPosition[3] / 90 + 90;
   const motor4 = armPosition[4] / 90;
-  const motor5 = armPosition[5] / 90;
+  const motor5 = armPosition[5] / 90 + 0.1;
 
+  // Motor 2 and motor 1 are switched due to the positioning on the robot arm
   const position = { x: motor0, y: motor2, z: motor1 };
-  const rotation = { alpha: motor3, beta: motor4, gamma: motor5 };
+  const rotation = { alpha: motor3, beta: motor4, gamma: 0 };
+  const tubeSize = motor5;
 
   const currentPosition = useRef({
     x: 0,
@@ -61,15 +57,13 @@ export function RobotTorus({ armPosition }: RobotTorusProps) {
     );
   });
 
-  console.log("position", torusRef.current?.position);
-
   return (
     <mesh
       ref={torusRef}
       position={[position.x, position.y, position.z]}
       rotation={[rotation.alpha, rotation.beta, rotation.gamma]}
     >
-      <torusGeometry />
+      <torusGeometry args={[1, tubeSize]} />
       <meshNormalMaterial />
     </mesh>
   );

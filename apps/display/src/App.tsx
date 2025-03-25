@@ -203,10 +203,6 @@ function Scene({
       )}
       {mode === "robot-arm" && armPosition && (
         <RobotTorus
-          position={{ x: 0, y: 0, z: -1 }}
-          rotation={{ alpha: 0, beta: 0, gamma: 0 }}
-          useOrientation={useOrientation}
-          useAcceleration={useAcceleration}
           armPosition={armPosition}
         />
       )}{" "}
