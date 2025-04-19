@@ -19,7 +19,7 @@ type DisplayMode = "qr-scan" | "file-playback" | "robot-arm";
 function App() {
   const [peerId, setPeerId] = useState<string | null>(null);
   const [conn, setConn] = useState<DataConnection | null>(null);
-  const [displayMode, setDisplayMode] = useState<DisplayMode>("robot-arm");
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("qr-scan");
   const [controllerUrl, setControllerUrl] = useState<string | null>(null);
   const targetAcceleration = useRef({ x: 0, y: 0, z: 0 });
   const targetOrientation = useRef({ alpha: 0, beta: 0, gamma: 0 });
@@ -64,33 +64,33 @@ function App() {
   const [robotParams, setRobotParams] = useState<Array<number>>([
     0, 0, 0, 0, 0, 0,
   ]);
-  const socketRef = useRef<WebSocket | null>(null);
+  // const socketRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    socketRef.current = new WebSocket("ws://10.100.11.67:9001");
+  // useEffect(() => {
+  //   socketRef.current = new WebSocket("ws://10.100.11.67:9001");
 
-    socketRef.current.onopen = () => {
-      console.log("WebSocket connected");
-      socketRef.current?.send(JSON.stringify({ type: "hello" }));
-    };
+  //   socketRef.current.onopen = () => {
+  //     console.log("WebSocket connected");
+  //     socketRef.current?.send(JSON.stringify({ type: "hello" }));
+  //   };
 
-    socketRef.current.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setRobotParams(data);
-    };
+  //   socketRef.current.onmessage = (event) => {
+  //     const data = JSON.parse(event.data);
+  //     setRobotParams(data);
+  //   };
 
-    socketRef.current.onclose = () => {
-      console.log("WebSocket disconnected");
-    };
+  //   socketRef.current.onclose = () => {
+  //     console.log("WebSocket disconnected");
+  //   };
 
-    socketRef.current.onerror = (error) => {
-      console.error("WebSocket error", error);
-    };
+  //   socketRef.current.onerror = (error) => {
+  //     console.error("WebSocket error", error);
+  //   };
 
-    return () => {
-      socketRef.current?.close();
-    };
-  }, []);
+  //   return () => {
+  //     socketRef.current?.close();
+  //   };
+  // }, []);
 
   if (!controllerUrl) {
     return <div>Loading...</div>;
@@ -190,7 +190,7 @@ function Scene({
           useOrientation={useOrientation}
           useAcceleration={useAcceleration}
         />
-      )}{" "}
+      )}
       {mode === "file" && (
         <RecordedTorus
           position={{ x: 0, y: 0, z: 0 }}
@@ -205,7 +205,7 @@ function Scene({
         <RobotTorus
           armPosition={armPosition}
         />
-      )}{" "}
+      )}
     </>
   );
 }
